@@ -14,8 +14,8 @@ DB_FILE = "sent_jobs.txt"
 # Keywords - "System" የሚለውን አውጥተነዋል (FAQ እንዳያመጣ)
 KEYWORDS = ["Software", "Developer", "Computer Science", "Information Technology", "Network", "Database", "Programming", "Web Design", "Frontend", "Backend", "Full Stack", "Cyber", "Security", "አይቲ", "ሶፍትዌር"]
 
-# በጭራሽ መላክ የሌለባቸው ቃላት
-BLACKLIST = ["easy apply", "how to", "faq", "edit my cv", "sign in", "login", "hospital", "furniture", "supervisor"]
+# በጭራሽ መላክ የሌለባቸው ቃላት (Blacklist)
+BLACKLIST = ["easy apply", "how to", "faq", "edit my cv", "sign in", "login", "hospital", "furniture", "supervisor", "apply for a job"]
 
 JOB_SOURCES = [
     "https://hahujobs.net/jobs",
@@ -40,22 +40,23 @@ def save_to_db(title):
         f.write(title.strip() + "\n")
 
 def run_mega_job_scraper():
-    print("🚀 ፍለጋ ተጀመረ...")
+    print("🚀 Deep Scanning Started...")
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+    
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver.set_page_load_timeout(90) # ለዘገምተኛ ድረ-ገጾች ጊዜ መስጠት
     
     found_count = 0
     for url in JOB_SOURCES:
         try:
             print(f"🌐 በመክፈት ላይ: {url}")
-            driver.set_page_load_timeout(60) # ሰርቨሩ እንዲታገስ
             driver.get(url)
-            time.sleep(15) 
+            time.sleep(15) # ገጹ እስኪጭን መጠበቅ
             
-            # ስራዎችን መፈለግ
             links = driver.find_elements(By.TAG_NAME, "a")
             for link in links:
                 title = link.text.strip()
@@ -63,7 +64,7 @@ def run_mega_job_scraper():
                 
                 # የማጣሪያ ህግ (Logic)
                 if len(title) > 12 and any(word.lower() in title.lower() for word in KEYWORDS):
-                    # ብላክሊስት ውስጥ አለመኖሩን ማረጋገጥ
+                    # ብላክሊስት ውስጥ ካለ አትላክ
                     if not any(bad.lower() in title.lower() for bad in BLACKLIST):
                         if not is_already_sent(title) and href:
                             print(f"🎯 ተገኘ: {title}")
