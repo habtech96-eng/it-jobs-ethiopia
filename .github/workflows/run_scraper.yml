@@ -3,11 +3,6 @@ name: Ultimate Auto IT Scraper
 on:
   schedule:
     - cron: '*/5 * * * *'
-  workflow_dispatch:name: Ultimate Auto IT Scraper
-
-on:
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -40,41 +35,6 @@ jobs:
           git add sent_jobs.txt || true
           if git diff --staged --quiet; then
             echo "No changes"
-          else
-            git commit -m "Auto-update database"
-            git push
-          fi
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          pip install selenium webdriver-manager requests
-
-      - name: Run Scraper
-        run: python selenium_scraper.py
-
-      - name: Save Database
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add sent_jobs.txt || true
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
           else
             git commit -m "Auto-update database"
             git push
