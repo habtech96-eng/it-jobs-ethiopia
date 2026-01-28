@@ -1,51 +1,81 @@
 import os
-import requests
 import time
+import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
-# --- መረጃዎች ---
 TOKEN = "8250838814:AAF99sEJAEQ1_2O9-O0QnvCuDqWKUdEh45Y"
-CHAT_ID = "-1003843080640"
+DESTINATION_CHANNEL = -1003843080640 
+DB_FILE = "sent_jobs.txt"
 
-def test_telegram():
-    print("📡 ቴሌግራምን በመሞከር ላይ...")
+# Keywords - "System" የሚለውን አውጥተነዋል (FAQ እንዳያመጣ)
+KEYWORDS = ["Software", "Developer", "Computer Science", "Information Technology", "Network", "Database", "Programming", "Web Design", "Frontend", "Backend", "Full Stack", "Cyber", "Security", "አይቲ", "ሶፍትዌር"]
+
+# በጭራሽ መላክ የሌለባቸው ቃላት
+BLACKLIST = ["easy apply", "how to", "faq", "edit my cv", "sign in", "login", "hospital", "furniture", "supervisor"]
+
+JOB_SOURCES = [
+    "https://hahujobs.net/jobs",
+    "https://www.ethiojobs.net/search-results-jobs/?category%5B%5D=14&action=search", # ቀጥታ የ IT Category
+    "https://www.2merkato.com/jobs/category/11-it-and-computer-science",
+    "https://www.dereja.com/jobs"
+]
+
+def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    r = requests.post(url, data={"chat_id": CHAT_ID, "text": "🤖 ቦቱ በይፋ ስራ ጀምሯል!"})
-    print(f"Telegram Test Status: {r.status_code}")
+    payload = {"chat_id": DESTINATION_CHANNEL, "text": text, "parse_mode": "HTML"}
+    try: requests.post(url, data=payload)
+    except: pass
 
-def run_scraper():
-    print("🚀 ቦቱ ድረ-ገጾችን መፈተሽ ጀመረ...")
+def is_already_sent(title):
+    if not os.path.exists(DB_FILE): return False
+    with open(DB_FILE, "r", encoding="utf-8") as f:
+        return title.strip() in f.read()
+
+def save_to_db(title):
+    with open(DB_FILE, "a", encoding="utf-8") as f:
+        f.write(title.strip() + "\n")
+
+def run_mega_job_scraper():
+    print("🚀 ፍለጋ ተጀመረ...")
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     
-    # አንድ ድረ-ገጽ ብቻ ለሙከራ
-    test_url = "https://hahujobs.net/jobs"
-    print(f"🌐 በመክፈት ላይ: {test_url}")
-    driver.get(test_url)
-    time.sleep(10)
-    
-    links = driver.find_elements(By.TAG_NAME, "a")
-    print(f"✅ በገጹ ላይ {len(links)} ሊንኮች ተገኝተዋል!")
-    
-    for link in links[:20]: # የመጀመሪያዎቹን 20 ብቻ መፈተሽ
-        title = link.text.strip()
-        if title:
-            print(f"🔗 የታየ ስራ: {title}")
-            # ማንኛውንም ስራ ለሙከራ ይላክ
-            requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                          data={"chat_id": CHAT_ID, "text": f"ሙከራ: {title}"})
-            break # አንድ ካገኘህ ይብቃን ለሙከራ
+    found_count = 0
+    for url in JOB_SOURCES:
+        try:
+            print(f"🌐 በመክፈት ላይ: {url}")
+            driver.set_page_load_timeout(60) # ሰርቨሩ እንዲታገስ
+            driver.get(url)
+            time.sleep(15) 
             
+            # ስራዎችን መፈለግ
+            links = driver.find_elements(By.TAG_NAME, "a")
+            for link in links:
+                title = link.text.strip()
+                href = link.get_attribute("href")
+                
+                # የማጣሪያ ህግ (Logic)
+                if len(title) > 12 and any(word.lower() in title.lower() for word in KEYWORDS):
+                    # ብላክሊስት ውስጥ አለመኖሩን ማረጋገጥ
+                    if not any(bad.lower() in title.lower() for bad in BLACKLIST):
+                        if not is_already_sent(title) and href:
+                            print(f"🎯 ተገኘ: {title}")
+                            msg = f"<b>🔥 አዲስ የ IT/Tech ስራ</b>\n\n👨‍💻 <b>ስራ፡</b> {title}\n\n🔗 <a href='{href}'>ዝርዝር መረጃና ማመልከቻ</a>"
+                            send_to_telegram(msg)
+                            save_to_db(title)
+                            found_count += 1
+        except Exception as e:
+            print(f"❌ ስህተት በ {url}: {e}")
+            
+    print(f"🏁 ተጠናቀቀ! {found_count} ስራዎች ተልከዋል።")
     driver.quit()
 
 if __name__ == "__main__":
-    test_telegram()
-    run_scraper()
+    run_mega_job_scraper()
