@@ -14,7 +14,25 @@ CHAT_ID = "-1003843080640"
 FIREBASE_URL = "https://itjob-47561-default-rtdb.europe-west1.firebasedatabase.app/jobs.json"
 
 # ለመፈለግ የምንጠቀምባቸው ቃላት
-KEYWORDS = ["and", "the", "job", "work", "Ethiopia", "አዲስ", "ስራ", "vacancy", "hiring"]
+# --- ሰፊ የፍለጋ ቃላት (KEYWORDS) ---
+KEYWORDS = [
+    # አጠቃላይ የስራ ቃላት
+    "job", "vacancy", "hiring", "career", "employment", "position", "work", "opportunity",
+    "ስራ", "ክፍት", "ማስታወቂያ", "ቅጥር", "ሰራተኛ", "አዲስ",
+    
+    # የሙያ ዘርፎች (IT & Tech)
+    "software", "developer", "it", "web", "computer", "network", "system", "data", "graphic",
+    "programmer", "security", "database", "hardware", "support",
+    
+    # የሙያ ዘርፎች (ሌሎች)
+    "accounting", "finance", "management", "manager", "marketing", "sales", "engineering", 
+    "civil", "health", "nurse", "doctor", "teaching", "teacher", "driver", "bank", "banking",
+    "human resource", "hr", "admin", "office", "clerk", "secretary",
+    
+    # ቦታዎች (ኢትዮጵያ ውስጥ)
+    "ethiopia", "addis ababa", "adama", "hawassa", "bahir dar", "mekelle", "dire dawa",
+    "አዲስ አበባ", "አዳማ", "ሀዋሳ", "ባህር ዳር", "ድሬዳዋ", "ጎንደር"
+]
 
 # 10 ድረ-ገጾች ዝርዝር
 SOURCES = [
