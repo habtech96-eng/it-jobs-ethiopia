@@ -1,0 +1,37 @@
+name: Ethiopia IT Jobs Scraper
+
+on:
+  schedule:
+    - cron: '0 * * * *' # በየ 1 ሰዓቱ
+  workflow_dispatch:      # በእጅህ ለማስነሳት
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write    # ይህ መስመር ለ GitHub የመጻፍ ፈቃድ ይሰጠዋል
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          pip install selenium webdriver-manager requests
+
+      - name: Run Scraper
+        run: python selenium_scraper.py
+
+      - name: Save Database
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add sent_jobs.txt || true
+          git commit -m "Update sent jobs database" || exit 0
+          git push
