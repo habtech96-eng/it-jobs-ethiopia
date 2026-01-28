@@ -11,7 +11,6 @@ TOKEN = "8250838814:AAF99sEJAEQ1_2O9-O0QnvCuDqWKUdEh45Y"
 CHAT_ID = "-1003843080640"
 # የአንተ Firebase URL
 FIREBASE_URL = "https://itjob-47561-default-rtdb.europe-west1.firebasedatabase.app/jobs.json"
-
 # ፍለጋ የምናደርግባቸው ቃላት
 KEYWORDS = ["Software", "Developer", "IT", "Computer Science", "Programming", "Network", "Database", "System", "Web", "Frontend", "Backend", "Full Stack", "Data", "Cyber", "Security", "App", "Mobile", "አይቲ", "ኮምፒውተር", "ሶፍትዌር"]
 
