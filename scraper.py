@@ -9,42 +9,36 @@ from webdriver_manager.chrome import ChromeDriverManager
 # --- CONFIGURATION ---
 TOKEN = "8250838814:AAF99sEJAEQ1_2O9-O0QnvCuDqWKUdEh45Y"
 CHAT_ID = "-1003843080640"
-# የአንተ Firebase URL
+# የአንተ Europe Server Firebase URL
 FIREBASE_URL = "https://itjob-47561-default-rtdb.europe-west1.firebasedatabase.app/jobs.json"
-# ፍለጋ የምናደርግባቸው ቃላት
-KEYWORDS = ["and", "the", "job", "Ethiopia"]
+
+# ለሙከራ ያህል ማንኛውንም ስራ እንዲያመጣ እነዚህን ቃላት ተጠቀም
+KEYWORDS = ["and", "the", "job", "work", "Ethiopia", "አዲስ", "ስራ"]
+
 def is_already_sent(title):
-    """Firebase ውስጥ ገብቶ ይህ ስራ በፊት ተልኮ እንደሆነ ያረጋግጣል"""
     try:
         response = requests.get(FIREBASE_URL)
         data = response.json()
         if data:
-            # በዳታቤዙ ውስጥ ያለውን እያንዳንዱን ርዕስ ይፈትሻል
             for key in data:
                 if data[key]['title'] == title:
                     return True
-    except Exception as e:
-        print(f"Firebase Check Error: {e}")
+    except: pass
     return False
 
 def save_to_firebase(title):
-    """አዲስ የተገኘን ስራ ርዕስ Firebase ላይ ይመዘግባል"""
     try:
         requests.post(FIREBASE_URL, json={"title": title, "time": time.ctime()})
-    except Exception as e:
-        print(f"Firebase Save Error: {e}")
+    except: pass
 
 def send_to_telegram(text):
-    """ወደ ቴሌግራም መልእክት ይልካል"""
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML"}
-    try:
-        requests.post(url, data=payload)
-    except Exception as e:
-        print(f"Telegram Error: {e}")
+    try: requests.post(url, data=payload)
+    except: pass
 
 def run_scraper():
-    print("🚀 ፍለጋ ተጀመረ...")
+    print("🚀 የሙከራ ፍለጋ ተጀመረ...")
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
@@ -53,38 +47,32 @@ def run_scraper():
     
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     
-    # የምንፈልግባቸው ድረ-ገጾች
-    sources = [
-        "https://hahujobs.net/jobs",
-        "https://www.ethiojobs.net/search-results-jobs/?category%5B%5D=14&action=search",
-        "https://www.2merkato.com/jobs/category/11-it-and-computer-science"
-    ]
+    # ለፍጥነት ያህል HahuJobsን ብቻ እንሞክር
+    sources = ["https://hahujobs.net/jobs"]
     
-    found_new = 0
+    found_count = 0
     for url in sources:
         try:
-            print(f"🌐 በመክፈት ላይ: {url}")
             driver.get(url)
-            time.sleep(15) # ገጹ እስኪጭን መጠበቅ
-            
+            time.sleep(10)
             links = driver.find_elements(By.TAG_NAME, "a")
             for link in links:
                 title = link.text.strip()
                 href = link.get_attribute("href")
                 
-                # ርዕሱ ከ 10 ፊደል በላይ ከሆነና IT ነክ ቃላት ካሉበት
-                if len(title) > 10 and any(word.lower() in title.lower() for word in KEYWORDS):
+                if len(title) > 5 and any(word.lower() in title.lower() for word in KEYWORDS):
                     if not is_already_sent(title) and href:
-                        print(f"🎯 አዲስ ስራ ተገኘ: {title}")
-                        msg = f"<b>🔥 አዲስ የ IT/Tech ስራ</b>\n\n👨‍💻 <b>ስራ፡</b> {title}\n\n🔗 <a href='{href}'>ዝርዝር መረጃና ማመልከቻ</a>"
+                        print(f"🎯 ተገኘ: {title}")
+                        msg = f"<b>🧪 የሙከራ መልእክት</b>\n\n💼 <b>ስራ፡</b> {title}\n\n🔗 <a href='{href}'>ሊንክ</a>"
                         send_to_telegram(msg)
                         save_to_firebase(title)
-                        found_new += 1
+                        found_count += 1
+                        if found_count >= 5: break # ለሙከራ 5 ስራ ብቻ ይላክ
         except Exception as e:
-            print(f"❌ ስህተት በ {url}: {e}")
+            print(f"Error: {e}")
             
-    print(f"🏁 ፍለጋ ተጠናቋል! {found_new} አዳዲስ ስራዎች ተልከዋል።")
     driver.quit()
+    print(f"🏁 ሙከራው ተጠናቋል! {found_count} ስራዎች ተልከዋል።")
 
 if __name__ == "__main__":
     run_scraper()
