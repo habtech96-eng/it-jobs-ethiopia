@@ -2,8 +2,8 @@ name: IT Jobs Bot with Firebase
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # በየ 15 ደቂቃው እንዲነሳ
-  workflow_dispatch: # እኛ እጃችን ማስነሳት እንድንችል
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 jobs:
   scrape_and_send:
@@ -16,6 +16,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
       - name: Install dependencies
         run: |
