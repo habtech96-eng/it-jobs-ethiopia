@@ -2,7 +2,7 @@ name: Ultimate Auto IT Scraper
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/5 * * * *'   
   workflow_dispatch:
 
 jobs:
