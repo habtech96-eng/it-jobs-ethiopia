@@ -32,10 +32,11 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          git pull origin main --rebase # መጀመሪያ የቆየውን ለውጥ እንዲያመጣ
           git add sent_jobs.txt || true
           if git diff --staged --quiet; then
-            echo "No changes"
+            echo "No changes to commit"
           else
             git commit -m "Auto-update database"
-            git push
+            git push origin main
           fi
