@@ -1,15 +1,13 @@
-name: Ultimate Auto IT Scraper
+name: IT Jobs Bot with Firebase
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   
-  workflow_dispatch:
+    - cron: '*/15 * * * *' # በየ 15 ደቂቃው እንዲነሳ
+  workflow_dispatch: # እኛ እጃችን ማስነሳት እንድንችል
 
 jobs:
-  build:
+  scrape_and_send:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -19,24 +17,9 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
           pip install selenium webdriver-manager requests
 
       - name: Run Scraper
-        run: python selenium_scraper.py
-
-      - name: Save Database
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git pull origin main --rebase # መጀመሪያ የቆየውን ለውጥ እንዲያመጣ
-          git add sent_jobs.txt || true
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Auto-update database"
-            git push origin main
-          fi
+        run: python scraper.py
