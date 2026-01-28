@@ -7,9 +7,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
-TOKEN = "8250838814:AAF99sEJAEQ1_2O9-O0QnvCuDqWKUdEh45Y"
-DESTINATION_CHANNEL = -1003843080640 
-DB_FILE = "sent_jobs.txt"
+
 
 # Keywords - "System" የሚለውን አውጥተነዋል (FAQ እንዳያመጣ)
 KEYWORDS = ["Software", "Developer", "Computer Science", "Information Technology", "Network", "Database", "Programming", "Web Design", "Frontend", "Backend", "Full Stack", "Cyber", "Security", "አይቲ", "ሶፍትዌር"]
