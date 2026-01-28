@@ -12,8 +12,7 @@ CHAT_ID = "-1003843080640"
 # የአንተ Firebase URL
 FIREBASE_URL = "https://itjob-47561-default-rtdb.europe-west1.firebasedatabase.app/jobs.json"
 # ፍለጋ የምናደርግባቸው ቃላት
-KEYWORDS = ["Software", "Developer", "IT", "Computer Science", "Programming", "Network", "Database", "System", "Web", "Frontend", "Backend", "Full Stack", "Data", "Cyber", "Security", "App", "Mobile", "አይቲ", "ኮምፒውተር", "ሶፍትዌር"]
-
+KEYWORDS = ["and", "the", "job", "Ethiopia"]
 def is_already_sent(title):
     """Firebase ውስጥ ገብቶ ይህ ስራ በፊት ተልኮ እንደሆነ ያረጋግጣል"""
     try:
