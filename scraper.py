@@ -1,3 +1,4 @@
+import os
 import time
 import requests
 from selenium import webdriver
@@ -6,21 +7,19 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
-# --- CONFIGURATION --
-
-# እነዚህን በኮድህ ውስጥ ተካቸው
+# --- CONFIGURATION ---
 TOKEN = os.getenv("TG_TOKEN")
 CHAT_ID = os.getenv("TG_CHAT_ID")
 FIREBASE_URL = os.getenv("FB_URL")
 
-# ማሳሰቢያ፡ ከታች send_to_telegram በሚለው ውስጥ 
-# የድሮውን Token ተጠቅመህ ከሆነ ወደ TOKEN ቀይረው።
-# IT Keywords
+# IT Keywords (ትክክለኛ ስራዎችን ለመለየት)
 IT_KEYWORDS = ["software", "developer", "it ", "ict", "web", "computer", "network", 
                "system", "data", "graphic", "programmer", "security", "database", 
                "hardware", "support", "coding", "technician", "information technology"]
 
-# 10+ የኢትዮጵያ ስራ ድረ-ገጾች ዝርዝር
+# አላስፈላጊ ቃላት (እነዚህን የያዘ ሊንክ ችላ ይባላል)
+EXCLUDE_WORDS = ["login", "register", "apply", "details", "contact", "about", "services", "home", "search"]
+
 SOURCES = [
     "https://hahujobs.net/jobs",
     "https://www.ethiojobs.net",
@@ -35,20 +34,17 @@ SOURCES = [
 ]
 
 def is_already_sent(title):
-    """Firebase ውስጥ ርዕሱ ካለ True ይመልሳል"""
     try:
         response = requests.get(FIREBASE_URL)
         data = response.json()
         if data:
             for key in data:
-                # ርዕሱን በትክክል ለማነጻጸር Spaces እና Case እናስተካክላለን
                 if data[key].get('title').strip().lower() == title.strip().lower():
                     return True
     except: pass
     return False
 
 def save_to_firebase(title):
-    """አዲስ ስራ ሲገኝ Firebase ላይ ይመዘግባል"""
     try:
         requests.post(FIREBASE_URL, json={"title": title, "time": time.ctime()})
     except: pass
@@ -60,7 +56,7 @@ def send_to_telegram(text):
     except: pass
 
 def run_scraper():
-    print(f"🚀 የ {len(SOURCES)} ድረ-ገጾች ፍለጋ ተጀመረ...")
+    print(f"🚀 ፍለጋ ተጀመረ...")
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
@@ -74,30 +70,35 @@ def run_scraper():
         try:
             print(f"🔎 በመፈለግ ላይ: {url}")
             driver.get(url)
-            time.sleep(8) # ድረ-ገጹ እስኪጭን መጠበቅ
+            time.sleep(7) 
             
             links = driver.find_elements(By.TAG_NAME, "a")
             for link in links:
                 title = link.text.strip()
                 href = link.get_attribute("href")
                 
-                # 1. ርዝመትና IT መሆኑን ቼክ ያደርጋል
-                if len(title) > 10 and any(word.lower() in title.lower() for word in IT_KEYWORDS):
-                    # 2. ከዚህ በፊት ያልተላከ መሆኑን ያረጋግጣል
-                    if not is_already_sent(title) and href:
-                        print(f"🎯 አዲስ IT ስራ ተገኘ: {title}")
-                        source_name = url.split('/')[2].replace('www.', '')
-                        msg = f"<b>💻 አዲስ የ IT ስራ</b>\n\n💼 <b>ስራ፡</b> {title}\n🌐 <b>ምንጭ፡</b> {source_name}\n\n🔗 <a href='{href}'>ዝርዝሩን እዚህ ይመልከቱ</a>"
-                        
-                        send_to_telegram(msg)
-                        save_to_firebase(title)
-                        found_count += 1
-                        time.sleep(2) # ቴሌግራም እንዳያግደን ትንሽ መጠበቅ
+                # 1. ርዕሱ ባዶ ካልሆነ እና ከ 10 ፊደል በላይ ከሆነ
+                if len(title) > 10:
+                    title_low = title.lower()
+                    
+                    # 2. የ IT ቃላት ካሉበት እና አላስፈላጊ ቃላት (Apply/Login) ከሌሉበት
+                    is_it_job = any(word in title_low for word in IT_KEYWORDS)
+                    is_garbage = any(word in title_low for word in EXCLUDE_WORDS)
+                    
+                    if is_it_job and not is_garbage:
+                        if not is_already_sent(title) and href:
+                            source_name = url.split('/')[2].replace('www.', '')
+                            msg = f"<b>💻 አዲስ የ IT ስራ</b>\n\n💼 <b>ስራ፡</b> {title}\n🌐 <b>ምንጭ፡</b> {source_name}\n\n🔗 <a href='{href}'>ዝርዝሩን እዚህ ይመልከቱ</a>"
+                            
+                            send_to_telegram(msg)
+                            save_to_firebase(title)
+                            found_count += 1
+                            time.sleep(1)
         except Exception as e:
-            print(f"❌ ስህተት በ {url}: {e}")
+            print(f"❌ ስህተት: {e}")
             
     driver.quit()
-    print(f"🏁 ፍለጋው ተጠናቋል! {found_count} አዳዲስ IT ስራዎች ተልከዋል።")
+    print(f"🏁 ተጠናቋል! {found_count} አዳዲስ ስራዎች ተልከዋል።")
 
 if __name__ == "__main__":
     run_scraper()
