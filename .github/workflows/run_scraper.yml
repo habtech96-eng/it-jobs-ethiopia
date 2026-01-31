@@ -2,7 +2,7 @@ name: IT Jobs Bot with Firebase
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/15 * * * *' # በየ 15 ደቂቃው ይሰራል።
   workflow_dispatch:
 
 jobs:
@@ -27,4 +27,7 @@ jobs:
           pip install selenium webdriver-manager requests
 
       - name: Run Scraper
-        run: python scraper.py
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+          FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
+        run: python scraper.py  # ፋይልህ ስሙ scraper.py ከሆነ እንዳለ ይቆይ
