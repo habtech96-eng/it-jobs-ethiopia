@@ -3,27 +3,28 @@ name: IT Jobs Bot Hybrid
 on:
   schedule:
     - cron: '0 */6 * * *' # በየ 6 ሰዓቱ በራሱ ይነሳል
-  workflow_dispatch:
+  workflow_dispatch: # በእጅህ ለማስነሳት
 
 jobs:
-  run-scraper:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Install Dependencies
+
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          pip install selenium webdriver-manager requests telethon
+          pip install telethon requests
+
       - name: Run Scraper
         env:
           TOKEN: ${{ secrets.TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
           TELEGRAM_STRING_SESSION: ${{ secrets.TELEGRAM_STRING_SESSION }}
