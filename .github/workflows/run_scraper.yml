@@ -2,18 +2,18 @@ name: IT Jobs Bot Hybrid
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
+    - cron: '0 */6 * * *' # በየ 6 ሰዓቱ በራሱ ይነሳል
+  workflow_dispatch: # በእጅህ ለማስነሳት
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
@@ -22,11 +22,11 @@ jobs:
 
       - name: Run Scraper
         env:
-          # እዚህ ጋር በ Secrets ውስጥ ያሉትን ስሞች በትክክል ተክቼልሃለሁ
-          TOKEN: ${{ secrets.TG_TOKEN }}
+          # እነዚህ ስሞች በ GitHub Secrets ውስጥ ካሉት ጋር ፍጹም አንድ መሆን አለባቸው
+          TOKEN: ${{ secrets.TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
           TELEGRAM_STRING_SESSION: ${{ secrets.TELEGRAM_STRING_SESSION }}
-          FIREBASE_URL: ${{ secrets.FB_URL }}
+          FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
         run: python scraper.py
