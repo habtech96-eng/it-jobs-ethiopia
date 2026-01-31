@@ -14,7 +14,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 # --- CONFIGURATION (Secrets) ---
 TOKEN = os.getenv("TOKEN")
 CHAT_ID = os.getenv("TG_CHAT_ID") # የአንተ ቻናል ID
-FIREBASE_URL = os.getenv("FIREBASE_URL")
+FB_URL = os.getenv("FB_URL")
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("TELEGRAM_STRING_SESSION")
