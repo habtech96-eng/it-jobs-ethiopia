@@ -6,11 +6,15 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
-# --- CONFIGURATION ---
-TOKEN = "8250838814:AAF99sdEh45Y"
-CHAT_ID = "-1003843080640"
-FIREBASE_URL = "https://itjob-47561-default-rtdb.europe-west1.firebasedatabase.app/jobs.json"
+# --- CONFIGURATION --
 
+# እነዚህን በኮድህ ውስጥ ተካቸው
+TOKEN = os.getenv("TG_TOKEN")
+CHAT_ID = os.getenv("TG_CHAT_ID")
+FIREBASE_URL = os.getenv("FB_URL")
+
+# ማሳሰቢያ፡ ከታች send_to_telegram በሚለው ውስጥ 
+# የድሮውን Token ተጠቅመህ ከሆነ ወደ TOKEN ቀይረው።
 # IT Keywords
 IT_KEYWORDS = ["software", "developer", "it ", "ict", "web", "computer", "network", 
                "system", "data", "graphic", "programmer", "security", "database", 
