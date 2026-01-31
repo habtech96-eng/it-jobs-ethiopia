@@ -2,8 +2,8 @@ name: IT Jobs Bot Hybrid
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # በየ 6 ሰዓቱ በራሱ ይነሳል
-  workflow_dispatch: # በእጅህ ለማስነሳት
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,9 +23,11 @@ jobs:
 
       - name: Run Scraper
         env:
+          # እዚህ ጋር ያሉት ስሞች በ scraper.py ውስጥ ካሉት os.getenv() ጋር አንድ መሆን አለባቸው
           TOKEN: ${{ secrets.TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
           TELEGRAM_STRING_SESSION: ${{ secrets.TELEGRAM_STRING_SESSION }}
+          FB_URL: ${{ secrets.FB_URL }}
         run: python scraper.py
