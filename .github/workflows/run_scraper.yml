@@ -1,33 +1,30 @@
-name: IT Jobs Bot with Firebase
+name: IT Jobs Bot Hybrid
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # በየ 15 ደቂቃው ይሰራል።
+    - cron: '0 */6 * * *' # በየ 6 ሰዓቱ በራሱ ይነሳል
   workflow_dispatch:
 
 jobs:
-  scrape_and_send:
+  run-scraper:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
+      - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-
-      - name: Install Google Chrome
+      - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
-
-      - name: Install dependencies
-        run: |
-          pip install selenium webdriver-manager requests
-
+          pip install selenium webdriver-manager requests telethon
       - name: Run Scraper
         env:
           TOKEN: ${{ secrets.TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
-        run: python scraper.py  # ፋይልህ ስሙ scraper.py ከሆነ እንዳለ ይቆይ
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+          TELEGRAM_STRING_SESSION: ${{ secrets.TELEGRAM_STRING_SESSION }}
+        run: python scraper.py
