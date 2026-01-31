@@ -5,8 +5,8 @@ from telethon.tl.types import MessageEntityUrl, MessageEntityTextUrl
 
 # --- CONFIGURATION ---
 # እነዚህን በ GitHub Secrets ውስጥ መመዝገብህን እንዳትረሳ
-API_ID = 31987639 
-API_HASH = '1de0b58ba938bca8cd47d2292d6e5669'
+API_ID = os.getenv("API_ID")
+API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("TG_TOKEN")
 DESTINATION_CHANNEL = -1003843080640  # የአንተ ቻናል ID
 
