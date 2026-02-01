@@ -2,8 +2,8 @@ name: IT Jobs Bot Hybrid
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # በየ 6 ሰዓቱ በራሱ እንዲነሳ ያደርገዋል
-  workflow_dispatch:      # አንተም በፈለግክ ጊዜ ማስጀመር ትችላለህ
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,11 +20,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install selenium webdriver-manager firebase-admin python-telegram-bot
+          pip install telethon requests
 
       - name: Run Scraper
         env:
-          # እነዚህ ስሞች በ GitHub Secrets ውስጥ ካሉት ጋር ፍጹም አንድ መሆን አለባቸው
           TOKEN: ${{ secrets.TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           API_ID: ${{ secrets.API_ID }}
