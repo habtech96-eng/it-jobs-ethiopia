@@ -2,8 +2,8 @@ name: IT Jobs Bot Hybrid
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # በየ 6 ሰዓቱ በራሱ ይነሳል
-  workflow_dispatch: # በእጅህ ለማስነሳት
+    - cron: '0 */6 * * *'  # በየ 6 ሰዓቱ በራሱ እንዲነሳ ያደርገዋል
+  workflow_dispatch:      # አንተም በፈለግክ ጊዜ ማስጀመር ትችላለህ
 
 jobs:
   build:
