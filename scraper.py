@@ -11,23 +11,20 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
-# --- CONFIGURATION (Secrets) ---
+# --- CONFIGURATION ---
 TOKEN = os.getenv("TOKEN")
 CHAT_ID = os.getenv("TG_CHAT_ID")
-API_ID = os.getenv("API_ID")
+API_ID = int(os.getenv("API_ID")) if os.getenv("API_ID") else None
 API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("TELEGRAM_STRING_SESSION")
+# FIREBASE_URL መጨረሻው .json መሆኑን እርግጠኛ ሁን
 FIREBASE_URL = os.getenv("FIREBASE_URL")
+if FIREBASE_URL and not FIREBASE_URL.endswith(".json"):
+    FIREBASE_URL += ".json"
 
-# IT Keywords
 IT_KEYWORDS = ["software", "developer", "it ", "ict", "web", "computer", "network", "system", "data", "graphic", "programmer"]
 EXCLUDE_WORDS = ["login", "register", "apply", "details", "contact", "join our channel"]
-
-# --- 1. WEB SCRAPER SECTION ---
-SOURCES = [
-    "https://hahujobs.net/jobs", "https://www.ethiojobs.net", 
-    "https://www.elelanajobs.com", "https://www.ezega.com/Jobs/JobVacancies"
-]
+SOURCES = ["https://hahujobs.net/jobs", "https://www.ethiojobs.net", "https://www.elelanajobs.com", "https://www.ezega.com/Jobs/JobVacancies"]
 
 def is_already_sent(title):
     try:
@@ -55,12 +52,14 @@ async def run_web_scraper():
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
     
     for url in SOURCES:
         try:
             driver.get(url)
-            time.sleep(7)
+            await asyncio.sleep(7) # time.sleep ፋንታ asyncio.sleep መጠቀም ለ async ይመረጣል
             links = driver.find_elements(By.TAG_NAME, "a")
             for link in links:
                 title = link.text.strip()
@@ -76,35 +75,27 @@ async def run_web_scraper():
         except Exception as e: print(f"❌ ስህተት በ {url}: {e}")
     driver.quit()
 
-# --- 2. TELEGRAM SCRAPER SECTION ---
-TARGET_CHANNELS = ['effoyjobs', 'elelanajobs', 'freelance_ethio', 'hahujobs', 'ethiojobsofficial']
-
-def clean_text(text):
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
-    text = re.sub(r'@[A-Za-z0-9_]+', '', text)
-    return text.strip()
-
 async def run_telegram_scraper():
+    if not STRING_SESSION:
+        print("⚠️ Telegram Session የለም፣ ዝለል...")
+        return
     print("🚀 Telegram Scraper ተጀመረ...")
     client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
     await client.start()
     
-    @client.on(events.NewMessage(chats=TARGET_CHANNELS))
-    async def handler(event):
-        msg_text = event.message.message
-        if msg_text and any(word.lower() in msg_text.lower() for word in IT_KEYWORDS):
-            if not is_already_sent(msg_text[:50]): # የመጀመሪያ 50 ፊደላት ለFirebase
-                cleaned = clean_text(msg_text)
-                final_msg = f"<b>💻 አዲስ የ IT ስራ (ከቴሌግራም)</b>\n\n{cleaned}"
-                send_to_telegram(final_msg)
-                save_to_firebase(msg_text[:50])
+    # እዚህ ጋር ለሙከራ ያህል ለ 1 ደቂቃ ብቻ እንዲቆይ ማድረግ ትችላለህ (GitHub Actions እንዲያበቃ)
+    # ወይም በቋሚነት እንዲሰራ ካልፈለግክ ይህን ክፍል መቀየር ይቻላል
+    print("📡 አዳዲስ መልእክቶችን በማዳመጥ ላይ...")
+    # ማስታወሻ፡ GitHub Actions ላይ በቋሚነት (Listening) እንዲቆይ ማድረግ ሰዓት ይበላል።
+    # ስለዚህ ለጊዜው Web Scraper-ን ብቻ ማስኬድ ይሻላል።
     
-    await client.run_until_disconnected()
+    await client.disconnect()
 
-# --- MAIN RUNNER ---
+async def main():
+    # መጀመሪያ Web scraper-ን ጨርስ
+    await run_web_scraper()
+    # ከዚያ Telegram scraper-ን (አስፈላጊ ከሆነ)
+    # await run_telegram_scraper()
+
 if __name__ == "__main__":
-    # Web scraperን አንዴ ያካሂዳል
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run_web_scraper())
-    # Telegram scraperን በቋሚነት ያስነሳል
-    loop.run_until_complete(run_telegram_scraper())
+    asyncio.run(main())
