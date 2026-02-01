@@ -18,13 +18,23 @@ API_ID = int(os.getenv("API_ID")) if os.getenv("API_ID") else None
 API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("TELEGRAM_STRING_SESSION")
 FIREBASE_URL = os.getenv("FIREBASE_URL")
+
 if FIREBASE_URL and not FIREBASE_URL.endswith(".json"):
     FIREBASE_URL += ".json"
 
-IT_KEYWORDS = ["software", "developer", "it ", "ict", "web", "computer", "network", "system", "data", "graphic", "programmer"]
-EXCLUDE_WORDS = ["login", "register", "apply", "details", "contact", "join our channel"]
+# ሰፋ ያሉ የሥራ ቃላት (ባንክ፣ ቴሌ፣ IT እና ሌሎችም)
+KEYWORDS = ["software", "developer", "it ", "ict", "web", "computer", "network", "system", "data", "graphic", "programmer", "bank", "accountant", "management", "engineer", "ክፍት የስራ", "ባንክ", "ኢንጂነር"]
+EXCLUDE_WORDS = ["login", "register", "apply", "details", "contact", "join our channel", "how to"]
+
+# ድረ-ገጾች
 SOURCES = ["https://hahujobs.net/jobs", "https://www.ethiojobs.net", "https://www.elelanajobs.com", "https://www.ezega.com/Jobs/JobVacancies"]
-TARGET_CHANNELS = ['effoyjobs', 'elelanajobs', 'freelance_ethio', 'hahujobs', 'ethiojobsofficial']
+
+# ሁሉንም የኢትዮጵያ ዋና ዋና ቻናሎች ጨምሬያለሁ (Bank, Tele, Electric etc.)
+TARGET_CHANNELS = [
+    'ethiojobs', 'hahu_jobs', 'elelanajobs', 'effoyjobs', 
+    'sera_ethiopia', 'EthioJobVacancy1', 'vacancyethiopia',
+    'bank_vacancy_ethiopia', 'ethio_telecom_vacancy', 'eeu_vacancy'
+]
 
 def is_already_sent(title):
     try:
@@ -61,12 +71,12 @@ async def run_web_scraper():
             for link in links:
                 title = link.text.strip()
                 href = link.get_attribute("href")
-                if len(title) > 10:
+                if len(title) > 15:
                     title_low = title.lower()
-                    if any(word in title_low for word in IT_KEYWORDS) and not any(w in title_low for w in EXCLUDE_WORDS):
+                    if any(word in title_low for word in KEYWORDS) and not any(w in title_low for w in EXCLUDE_WORDS):
                         if not is_already_sent(title) and href:
                             source_name = url.split('/')[2].replace('www.', '')
-                            msg = f"<b>💻 አዲስ የ IT ስራ (ከድረ-ገጽ)</b>\n\n💼 <b>ስራ፡</b> {title}\n🌐 <b>ምንጭ፡</b> {source_name}\n\n🔗 <a href='{href}'>ዝርዝሩን እዚህ ይመልከቱ</a>"
+                            msg = f"<b>💼 አዲስ የሥራ ማስታወቂያ (ከድረ-ገጽ)</b>\n\n🔍 <b>ስራ፡</b> {title}\n🌐 <b>ምንጭ፡</b> {source_name}\n\n🔗 <a href='{href}'>ዝርዝሩን እዚህ ይመልከቱ</a>"
                             send_to_telegram(msg)
                             save_to_firebase(title)
         except Exception as e: print(f"❌ ስህተት በ {url}: {e}")
@@ -79,19 +89,20 @@ async def run_telegram_scraper():
     await client.start()
     for channel in TARGET_CHANNELS:
         try:
-            # ካለፉት 10 መልእክቶች ውስጥ የ IT ስራዎችን መፈለግ
-            async for message in client.iter_messages(channel, limit=10):
-                if message.message and any(word.lower() in message.message.lower() for word in IT_KEYWORDS):
-                    title_short = message.message[:50]
+            async for message in client.iter_messages(channel, limit=15):
+                if message.message and any(word.lower() in message.message.lower() for word in KEYWORDS):
+                    title_short = message.message[:60].replace('\n', ' ')
                     if not is_already_sent(title_short):
                         clean_text = re.sub(r'http\S+|www\S+|@\w+', '', message.message).strip()
-                        final_msg = f"<b>💻 አዲስ የ IT ስራ (ከቴሌግራም @{channel})</b>\n\n{clean_text}"
+                        final_msg = f"<b>📢 አዲስ ስራ (ከቴሌግራም @{channel})</b>\n\n{clean_text[:3500]}" # ቴሌግራም ገደብ ስላለው
                         send_to_telegram(final_msg)
                         save_to_firebase(title_short)
         except Exception as e: print(f"❌ ስህተት በ @{channel}: {e}")
     await client.disconnect()
 
 async def main():
+    # ቦቱ መጀመሩን ለማሳወቅ
+    send_to_telegram("🚀 <b>ቦቱ ስራ ጀምሯል!</b>\nሁሉንም ድረ-ገጾች እና የቴሌግራም ቻናሎች መፈተሽ ጀምሬያለሁ።")
     await run_web_scraper()
     await run_telegram_scraper()
 
