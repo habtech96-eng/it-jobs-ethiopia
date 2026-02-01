@@ -10,6 +10,13 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
+async def main():
+    # ይህንን መስመር ጨምር - ቦቱ እንደጀመረ ለቴሌግራምህ ይልካል
+    send_to_telegram("🚀 <b>ቦቱ ስራ ጀምሯል!</b>\nድረ-ገጾችን እና ቴሌግራምን መፈተሽ ጀምሬያለሁ።")
+    print("🚀 Web Scraper ተጀመረ...") # ይህ በ GitHub Log ላይ ይታያል
+    await run_web_scraper()
+    print("🚀 Telegram Scraper ተጀመረ...")
+    await run_telegram_scraper()
 
 # --- CONFIGURATION ---
 TOKEN = os.getenv("TOKEN")
