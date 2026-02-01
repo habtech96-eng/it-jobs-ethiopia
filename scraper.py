@@ -10,13 +10,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
-async def main():
-    # ይህንን መስመር ጨምር - ቦቱ እንደጀመረ ለቴሌግራምህ ይልካል
-    send_to_telegram("🚀 <b>ቦቱ ስራ ጀምሯል!</b>\nድረ-ገጾችን እና ቴሌግራምን መፈተሽ ጀምሬያለሁ።")
-    print("🚀 Web Scraper ተጀመረ...") # ይህ በ GitHub Log ላይ ይታያል
-    await run_web_scraper()
-    print("🚀 Telegram Scraper ተጀመረ...")
-    await run_telegram_scraper()
 
 # --- CONFIGURATION ---
 TOKEN = os.getenv("TOKEN")
@@ -36,7 +29,7 @@ EXCLUDE_WORDS = ["login", "register", "apply", "details", "contact", "join our c
 # ድረ-ገጾች
 SOURCES = ["https://hahujobs.net/jobs", "https://www.ethiojobs.net", "https://www.elelanajobs.com", "https://www.ezega.com/Jobs/JobVacancies"]
 
-# ሁሉንም የኢትዮጵያ ዋና ዋና ቻናሎች ጨምሬያለሁ (Bank, Tele, Electric etc.)
+# የኢትዮጵያ ዋና ዋና ቻናሎች
 TARGET_CHANNELS = [
     'ethiojobs', 'hahu_jobs', 'elelanajobs', 'effoyjobs', 
     'sera_ethiopia', 'EthioJobVacancy1', 'vacancyethiopia',
@@ -49,7 +42,7 @@ def is_already_sent(title):
         data = response.json()
         if data:
             for key in data:
-                if data[key].get('title').strip().lower() == title.strip().lower(): return True
+                if data[key].get('title', '').strip().lower() == title.strip().lower(): return True
     except: pass
     return False
 
@@ -69,28 +62,34 @@ async def run_web_scraper():
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    for url in SOURCES:
-        try:
-            driver.get(url)
-            await asyncio.sleep(7)
-            links = driver.find_elements(By.TAG_NAME, "a")
-            for link in links:
-                title = link.text.strip()
-                href = link.get_attribute("href")
-                if len(title) > 15:
-                    title_low = title.lower()
-                    if any(word in title_low for word in KEYWORDS) and not any(w in title_low for w in EXCLUDE_WORDS):
-                        if not is_already_sent(title) and href:
-                            source_name = url.split('/')[2].replace('www.', '')
-                            msg = f"<b>💼 አዲስ የሥራ ማስታወቂያ (ከድረ-ገጽ)</b>\n\n🔍 <b>ስራ፡</b> {title}\n🌐 <b>ምንጭ፡</b> {source_name}\n\n🔗 <a href='{href}'>ዝርዝሩን እዚህ ይመልከቱ</a>"
-                            send_to_telegram(msg)
-                            save_to_firebase(title)
-        except Exception as e: print(f"❌ ስህተት በ {url}: {e}")
-    driver.quit()
+    # GitHub Actions ላይ እንዳይቆም ይህ መስመር ወሳኝ ነው
+    try:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        for url in SOURCES:
+            try:
+                driver.get(url)
+                await asyncio.sleep(7)
+                links = driver.find_elements(By.TAG_NAME, "a")
+                for link in links:
+                    title = link.text.strip()
+                    href = link.get_attribute("href")
+                    if len(title) > 15:
+                        title_low = title.lower()
+                        if any(word in title_low for word in KEYWORDS) and not any(w in title_low for w in EXCLUDE_WORDS):
+                            if not is_already_sent(title) and href:
+                                source_name = url.split('/')[2].replace('www.', '')
+                                msg = f"<b>💼 አዲስ የሥራ ማስታወቂያ (ከድረ-ገጽ)</b>\n\n🔍 <b>ስራ፡</b> {title}\n🌐 <b>ምንጭ፡</b> {source_name}\n\n🔗 <a href='{href}'>ዝርዝሩን እዚህ ይመልከቱ</a>"
+                                send_to_telegram(msg)
+                                save_to_firebase(title)
+            except Exception as e: print(f"❌ ስህተት በ {url}: {e}")
+        driver.quit()
+    except Exception as e:
+        print(f"❌ Selenium መጀመር አልቻለም: {e}")
 
 async def run_telegram_scraper():
-    if not STRING_SESSION: return
+    if not STRING_SESSION: 
+        print("❌ STRING_SESSION አልተገኘም!")
+        return
     print("🚀 Telegram Scraper ተጀመረ...")
     client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
     await client.start()
@@ -100,18 +99,22 @@ async def run_telegram_scraper():
                 if message.message and any(word.lower() in message.message.lower() for word in KEYWORDS):
                     title_short = message.message[:60].replace('\n', ' ')
                     if not is_already_sent(title_short):
+                        # ሊንኮችን እና ማስታወቂያዎችን ማጽዳት
                         clean_text = re.sub(r'http\S+|www\S+|@\w+', '', message.message).strip()
-                        final_msg = f"<b>📢 አዲስ ስራ (ከቴሌግራም @{channel})</b>\n\n{clean_text[:3500]}" # ቴሌግራም ገደብ ስላለው
+                        final_msg = f"<b>📢 አዲስ ስራ (ከቴሌግራም @{channel})</b>\n\n{clean_text[:3500]}"
                         send_to_telegram(final_msg)
                         save_to_firebase(title_short)
         except Exception as e: print(f"❌ ስህተት በ @{channel}: {e}")
     await client.disconnect()
 
 async def main():
-    # ቦቱ መጀመሩን ለማሳወቅ
-    send_to_telegram("🚀 <b>ቦቱ ስራ ጀምሯል!</b>\nሁሉንም ድረ-ገጾች እና የቴሌግራም ቻናሎች መፈተሽ ጀምሬያለሁ።")
+    print("🎬 ቦቱ ስራውን እየጀመረ ነው...")
+    send_to_telegram("🚀 <b>ቦቱ ስራ ጀምሯል!</b>\nድረ-ገጾችን እና የቴሌግራም ቻናሎችን መፈተሽ ጀምሬያለሁ።")
+    
     await run_web_scraper()
     await run_telegram_scraper()
+    
+    print("✅ ስራው ተጠናቋል።")
 
 if __name__ == "__main__":
     asyncio.run(main())
