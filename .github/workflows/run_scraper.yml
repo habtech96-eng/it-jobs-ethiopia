@@ -17,8 +17,8 @@ jobs:
         with:
           python-version: '3.9'
 
-      # Chrome እና Driver ለ Selenium እንዲሰራ መጫን
-      - name: Install Chrome and Driver
+      # Chrome ለ Selenium እንዲሰራ መጫን
+      - name: Install Chrome
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
