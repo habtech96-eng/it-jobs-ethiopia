@@ -6,7 +6,7 @@ import asyncio
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
-# --- CONFIGURATION (ከ GitHub Secrets የሚመጡ) ---
+# --- CONFIGURATION ---
 TOKEN = os.getenv("TOKEN")
 CHAT_ID = os.getenv("TG_CHAT_ID")
 API_ID = int(os.getenv("API_ID")) if os.getenv("API_ID") else None
@@ -14,71 +14,78 @@ API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("TELEGRAM_STRING_SESSION")
 FIREBASE_URL = os.getenv("FIREBASE_URL")
 
-# Firebase URL መጨረሻው .json መሆኑን ማረጋገጥ
 if FIREBASE_URL and not FIREBASE_URL.endswith(".json"):
     FIREBASE_URL += ".json"
 
-# የምንፈልጋቸው የሙያ ቃላት
 IT_KEYWORDS = ["software", "developer", "it ", "ict", "web", "computer", "network", "system", "data", "graphic", "programmer"]
-
-# የምንሰልላቸው ቻናሎች
 TARGET_CHANNELS = ['effoyjobs', 'elelanajobs', 'freelance_ethio', 'hahujobs', 'ethiojobsofficial']
 
-def is_already_sent(text_snippet):
+# --- ዳታቤዙን አንድ ጊዜ ብቻ ለማንበብ ---
+def get_sent_jobs():
     try:
         response = requests.get(FIREBASE_URL)
         data = response.json()
         if data:
-            for key in data:
-                if data[key].get('title') == text_snippet: return True
-    except: pass
-    return False
+            return [str(val.get('title')) for val in data.values()]
+    except:
+        pass
+    return []
 
 def save_to_firebase(text_snippet):
-    try: requests.post(FIREBASE_URL, json={"title": text_snippet, "time": time.ctime()})
-    except: pass
+    try:
+        requests.post(FIREBASE_URL, json={"title": text_snippet, "time": time.ctime()})
+    except:
+        pass
 
 def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML"}
-    try: requests.post(url, data=payload)
-    except: pass
+    # HTML Error ለመከላከል ልዩ ምልክቶችን ማጽዳት ወይም መጠቅለል
+    payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True}
+    try:
+        res = requests.post(url, data=payload)
+        if res.status_code != 200:
+            print(f"⚠️ Telegram Error: {res.text}")
+    except:
+        pass
 
 async def run_telegram_scraper():
     if not STRING_SESSION:
         print("❌ Telegram Session አልተገኘም!")
         return
     
-    print("🚀 Telegram Scraper ስራ ጀመረ...")
+    sent_jobs_list = get_sent_jobs() # ዳታቤዙን እዚህ ጋር አንድ ጊዜ እናንብብ
+    print(f"🚀 ስራ ተጀምሯል። {len(sent_jobs_list)} የቆዩ ስራዎች በዳታቤዝ አሉ።")
+
     client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
     await client.start()
     
     for channel in TARGET_CHANNELS:
         try:
             print(f"📡 @{channel} እየታየ ነው...")
-            # በእያንዳንዱ ቻናል የመጨረሻዎቹን 15 መልእክቶች ያያል
-            async for message in client.iter_messages(channel, limit=15):
+            async for message in client.iter_messages(channel, limit=30): # ገደቡን ወደ 30 ከፍ አድርገነዋል
                 if message.message:
                     msg_text = message.message
-                    # የ IT ቃላት መኖራቸውን ማረጋገጥ
+                    
                     if any(word.lower() in msg_text.lower() for word in IT_KEYWORDS):
-                        # ለFirebase መለያ እንዲሆን የመጀመሪያ 50 ፊደላትን መውሰድ
-                        snippet = msg_text[:60].replace("\n", " ")
+                        # ለFirebase መለያ እንዲሆን የመጀመሪያ 60 ፊደላትን መውሰድ
+                        snippet = msg_text[:60].replace("\n", " ").strip()
                         
-                        if not is_already_sent(snippet):
-                            # ሊንኮችን እና አላስፈላጊ @ ምልክቶችን ማጽዳት
-                            clean_text = re.sub(r'http\S+|www\S+|@\w+', '', msg_text).strip()
+                        if snippet not in sent_jobs_list:
+                            # ጽሁፉን ማጽዳት (HTML Tags እንዳያበላሹ)
+                            clean_text = msg_text.replace("<", "&lt;").replace(">", "&gt;")
+                            # ሊንኮችን ማጽዳት ከፈለግክ re.sub መጠቀም ትችላለህ
                             
-                            final_msg = f"<b>💻 አዲስ የ IT ስራ (ከቴሌግራም @{channel})</b>\n\n{clean_text[:3500]}" # የቴሌግራም የፊደል ገደብን ለመጠበቅ
+                            final_msg = f"<b>💻 አዲስ የ IT ስራ (@{channel})</b>\n\n{clean_text[:3800]}"
                             
                             send_to_telegram(final_msg)
                             save_to_firebase(snippet)
-                            print(f"✅ አዲስ ስራ ተላከ፡ {snippet[:30]}...")
+                            sent_jobs_list.append(snippet) # በዚሁ ዙር ድጋሚ እንዳይላክ
+                            print(f"✅ ተላከ፡ {snippet[:30]}...")
+                            await asyncio.sleep(2) # Telegram Flood እንዳያደርገን
         except Exception as e:
             print(f"❌ ስህተት በ @{channel}: {e}")
             
     await client.disconnect()
-    print("✅ የቴሌግራም ስካኒንግ ተጠናቋል።")
 
 if __name__ == "__main__":
     asyncio.run(run_telegram_scraper())
