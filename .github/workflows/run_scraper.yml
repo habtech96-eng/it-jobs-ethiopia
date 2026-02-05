@@ -2,12 +2,15 @@ name: IT Jobs Bot Hybrid
 
 on:
   schedule:
+    # በየ 6 ሰዓቱ አንድ ጊዜ (በኢትዮጵያ አቆጣጠር ሌሊት 9:00፣ ጠዋት 3:00፣ ቀን 9:00 እና ምሽት 3:00 አካባቢ)
     - cron: '0 */6 * * *'
-  workflow_dispatch:
+  workflow_dispatch: # በፈለግን ጊዜ በከታ ለመጀመር
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15 # ስራው ከ 15 ደቂቃ በላይ ከፈጀ GitHub ራሱ እንዲያቆመው (ሀንግ እንዳያደርግ)
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,7 +20,7 @@ jobs:
         with:
           python-version: '3.9'
 
-      # Chrome ለ Selenium እንዲሰራ መጫን
+      # Chrome ለ Selenium እንዲሰራ መጫን (Headless ሞድ ላይ የግድ ያስፈልጋል)
       - name: Install Chrome
         run: |
           sudo apt-get update
@@ -36,4 +39,5 @@ jobs:
           API_HASH: ${{ secrets.API_HASH }}
           TELEGRAM_STRING_SESSION: ${{ secrets.TELEGRAM_STRING_SESSION }}
           FIREBASE_URL: ${{ secrets.FIREBASE_URL }}
+        # አንድ ቻናል ባይሰራ እንኳ ሌሎቹን እንዲቀጥል እና ስህተት ካለ እንዲያሳየን
         run: python scraper.py
