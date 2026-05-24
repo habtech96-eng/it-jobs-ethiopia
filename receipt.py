@@ -13,13 +13,16 @@ def generate_receipt_image(order_id, user_name, product_name, price, size, phone
     draw.rectangle([(20, 20), (width - 20, height - 20)], outline="#2C3E50", width=3)
     draw.rectangle([(25, 25), (width - 25, height - 25)], outline="#BDC3C7", width=1)
     
-    # 3. ፎንት (Font) ማዘጋጀት (የሊኑክስ ዲፎልት ፎንት እንጠቀማለን)
-    try:
-        title_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 32)
-        body_font = ImageFont.truetype("DejaVuSans.ttf", 20)
-        bold_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 22)
-    except IOError:
-        # ፎንቱ ሰርቨሩ ላይ ካልተገኘ ዲፎልት ፎንት ይጠቀማል
+    # 3. የአማርኛ ፎንት በስርዓት መጫን
+    font_path = "Nyala.ttf" # ወይም ያወረድከው የፎንት ስም (ለምሳሌ AbyssinicaSIL-Regular.ttf)
+    
+    if os.path.exists(font_path):
+        title_font = ImageFont.truetype(font_path, 34)
+        body_font = ImageFont.truetype(font_path, 22)
+        bold_font = ImageFont.truetype(font_path, 24)
+    else:
+        # ፋይሉ ካልተገኘ ቦቱ እንዳይበላሽ ዲፎልት ፎንት መጠቀም
+        print("⚠️ የአማርኛ ፎንት ፋይል አልተገኘም! ዲፎልት ፎንት ጥቅም ላይ ውሏል።")
         title_font = body_font = bold_font = ImageFont.load_default()
 
     # 4. የራስጌ ጽሑፍ (Header)
