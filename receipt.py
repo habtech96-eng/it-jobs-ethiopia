@@ -2,10 +2,11 @@
 from PIL import Image, ImageDraw, ImageFont
 import os
 from datetime import datetime
+import textwrap
 
 def generate_receipt_image(order_id, user_name, product_name, price, size, phone):
-    # 1. ንጹህ ነጭ ወረቀት ማዘጋጀት (ስፋት 650px፣ ቁመት 900px - ለጽሑፍ ምቾት ሰፋ ተደርጓል)
-    width, height = 650, 900
+    # 1. ንጹህ ነጭ ወረቀት ማዘጋጀት (ስፋት 650px፣ ቁመት 950px - ለግርጌው ጽሑፍ ምቾት ከፍ ተደርጓል)
+    width, height = 650, 950
     image = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(image)
     
@@ -21,10 +22,12 @@ def generate_receipt_image(order_id, user_name, product_name, price, size, phone
         title_font = ImageFont.truetype(font_path, 34)
         body_font = ImageFont.truetype(font_path, 20)
         bold_font = ImageFont.truetype(font_path, 22)
+        footer_font = ImageFont.truetype(font_path, 18)
     else:
         title_font = ImageFont.load_default(size=28)
         body_font = ImageFont.load_default(size=18)
         bold_font = ImageFont.load_default(size=20)
+        footer_font = ImageFont.load_default(size=16)
 
     # 4. የራስጌ ጽሑፍ (Header - Center Aligned)
     draw.text((width/2, 60), "ETHIO SHOE STORE", fill="#2C3E50", font=title_font, anchor="mm")
@@ -46,9 +49,9 @@ def generate_receipt_image(order_id, user_name, product_name, price, size, phone
     for label, value, is_bold in info_data:
         fnt = bold_font if is_bold else body_font
         clr = "#2C3E50" if is_bold else "#34495E"
-        # የግራ አሰላለፍ (Left Aligned)
+        # የግራ አሰላለፍ
         draw.text((50, y_offset), label, fill="#7F8C8D", font=body_font)
-        # የቀኝ አሰላለፍ (Right Aligned - anchor="ra")
+        # የቀኝ አሰላለፍ (anchor="ra")
         draw.text((580, y_offset), str(value), fill=clr, font=fnt, anchor="ra")
         y_offset += 45
         
@@ -68,11 +71,28 @@ def generate_receipt_image(order_id, user_name, product_name, price, size, phone
     draw.text((60, y_offset + 18), "Total Amount / ጠቅላላ ክፍያ:", fill="#2C3E50", font=bold_font)
     draw.text((570, y_offset + 18), f"{price} ETB", fill="#E74C3C", font=bold_font, anchor="ra")
     
-    # 7. የግርጌ ማስታወሻ (Footer - አድሚኑ ክፍያውን ካረጋገጠ በኋላ የሚላክ የመጨረሻ ጽሑፍ)
+    # 7. ✨ የግርጌ ማስታወሻ (ከመስመር እንዳይወጣ ተቆራርጦ በስርዓቱ የተስተካከለ)
     y_offset += 140
-    draw.text((width/2, y_offset), "This receipt confirms that your payment has been successfully processed.", fill="#7F8C8D", font=body_font, anchor="mm")
-    draw.text((width/2, y_offset + 35), "ይህ ደረሰኝ ክፍያዎ በተሳካ ሁኔታ መጠናቀቁን ያረጋግጣል።", fill="#7F8C8D", font=body_font, anchor="mm")
-    draw.text((width/2, y_offset + 80), "Thank you for shopping with us! / እናመሰግናለን!", fill="#2C3E50", font=bold_font, anchor="mm")
+    
+    # የእንግሊዘኛውን ጽሑፍ በየ 55 ካራክተር መቁረጥ
+    en_text = "This receipt confirms that your payment has been successfully processed."
+    en_lines = textwrap.wrap(en_text, width=55)
+    for line in en_lines:
+        draw.text((width/2, y_offset), line, fill="#7F8C8D", font=footer_font, anchor="mm")
+        y_offset += 28
+        
+    y_offset += 10 # በሁለቱ ቋንቋዎች መካከል ትንሽ ክፍተት
+    
+    # የአማርኛውን ጽሑፍ በየ 40 ካራክተር መቁረጥ (የአማርኛ ፊደላት ሰፋ ስለሚሉ)
+    am_text = "ይህ ደረሰኝ ክፍያዎ በተሳካ ሁኔታ መጠናቀቁን ያረጋግጣል።"
+    am_lines = textwrap.wrap(am_text, width=40)
+    for line in am_lines:
+        draw.text((width/2, y_offset), line, fill="#7F8C8D", font=footer_font, anchor="mm")
+        y_offset += 28
+        
+    # የማጠቃለያ ምስጋና
+    y_offset += 40
+    draw.text((width/2, y_offset), "Thank you for shopping with us! / እናመሰግናለን!", fill="#2C3E50", font=bold_font, anchor="mm")
     
     filename = f"receipt_{order_id}.png"
     image.save(filename)
