@@ -31,8 +31,23 @@ def home():
     return "Bot is Running Live!"
 
 def run_flask():
-    # Render በዲፎልት 10000 ፖርት ላይ ነው የሚፈልገው
+    # Render በዲፎልት 10000 ፖርት ላይ ነው ዌብሳይት የሚፈልገው
     app.run(host='0.0.0.0', port=10000)
+
+# ⏰ ቦቱ እንዳይተኛ ራሱን በየ 14 ደቂቃው የሚቀሰቅስ ፈንክሽን
+def keep_alive():
+    # ያንተ የቦት ሊንክ
+    url = "https://my-shoe-store-bot-7k49.onrender.com" 
+    
+    time.sleep(30) # ሰርቨሩ መጀመሪያ ሙሉ በሙሉ እስኪነሳ ትንሽ ይጠብቅ
+    while True:
+        try:
+            requests.get(url, timeout=10)
+            print("⏰ ሰርቨሩ እንዳይተኛ ራሱን ቀስቅሷል (Pinged Successfully)!")
+        except Exception as e:
+            print(f"⚠️ Ping ስህተት ገጥሟል፦ {e}")
+        
+        time.sleep(14 * 60) # በየ 14 ደቂቃው (14 x 60 ሰከንድ) ይደጋገማል
 
 # ቦቱን የማስነሻ ዋና ፈንክሽን
 def run_bot():
@@ -46,9 +61,13 @@ def run_bot():
             continue
 
 if __name__ == "__main__":
-    # የFlask ዌብ ሰርቨሩን ከበስተጀርባ በThread ማስነሳት
-    t = Thread(target=run_flask)
-    t.start()
+    # 1. የFlask ዌብ ሰርቨሩን ከበስተጀርባ ማስነሳት
+    t1 = Thread(target=run_flask)
+    t1.start()
     
-    # ቦቱን ማስነሳት
+    # 2. ራስን የመቀስቀሻውን ሎጂክ ከበስተጀርባ ማስነሳት
+    t2 = Thread(target=keep_alive)
+    t2.start()
+    
+    # 3. ቦቱን በዋናው መስመር ማስነሳት
     run_bot()
