@@ -5,21 +5,16 @@ import os
 
 DB_NAME = "shoe_store.db"
 
-# 🔄 ዳታቤዙ ሲቀየር በራስ-ሰር ወደ GitHub የመግፊያ ፈንክሽን
 def backup_to_github():
     try:
-        # Render ላይ የGit መለያህን ለጊዜው ማስተዋወቅ (ስህተት እንዳይፈጥር)
         subprocess.run(["git", "config", "user.name", "Render Bot"], check=True)
         subprocess.run(["git", "config", "user.email", "bot@render.com"], check=True)
-        
-        # ፋይሉን Add, Commit እና Push ማድረግ
         subprocess.run(["git", "add", DB_NAME], check=True)
-        # [skip ci] የሚለው ጥቅስ Render ያለምክንያት ደጋግሞ አፕዴት እንዳያደርግ ይከለክላል
         subprocess.run(["git", "commit", "-m", "🔄 Auto-backup database [skip ci]"], check=True)
         subprocess.run(["git", "push", "origin", "main"], check=True)
         print("✅ ዳታቤዙ በተሳካ ሁኔታ ወደ GitHub ተገፍቷል!")
     except Exception as e:
-        print(f"⚠️ ወደ GitHub መግፋት አልተሳካም (ምናልባት አዲስ ዳታ ስለሌለ ይሆናል)፦ {e}")
+        print(f"⚠️ ወደ GitHub መግፋት አልተሳካም፦ {e}")
 
 def get_connection():
     conn = sqlite3.connect(DB_NAME)
@@ -43,7 +38,7 @@ def init_db():
         )
     """)
     
-    # 2. የትዕዛዞች ሰንጠረዥ
+    # 2. የትዕዛዞች ሰንጠረዥ (ለአዲሱ ፍሰት እንዲመች ተደርጎ የተስተካከለ)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS orders (
             order_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,6 +46,8 @@ def init_db():
             chat_id INTEGER NOT NULL,
             product_name TEXT NOT NULL,
             phone TEXT NOT NULL,
+            price TEXT,
+            size TEXT,
             status TEXT DEFAULT '⏱️ ይጠበቃል'
         )
     """)
@@ -58,7 +55,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-# ➕ አዲስ ምርት ሲጨመር
 def add_product(name, category, price, size, photo_id):
     conn = get_connection()
     cursor = conn.cursor()
@@ -68,19 +64,18 @@ def add_product(name, category, price, size, photo_id):
     )
     conn.commit()
     conn.close()
-    backup_to_github() # 👈 ወደ ጂትሀብ ይላክ
+    backup_to_github()
 
-# 🛍️ አዲስ ትዕዛዝ (Order) ሲጨመር (ይህንን ፈንክሽን በሌላ ፋይል የምትጠቀመው ከሆነ እዚያ ላይ backup_to_github() ጨምርበት)
-def add_order(user_name, chat_id, product_name, phone):
+def add_order(user_name, chat_id, product_name, phone, price=None, size=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO orders (user_name, chat_id, product_name, phone) VALUES (?, ?, ?, ?)",
-        (user_name, chat_id, product_name, phone)
+        "INSERT INTO orders (user_name, chat_id, product_name, phone, price, size) VALUES (?, ?, ?, ?, ?, ?)",
+        (user_name, chat_id, product_name, phone, price, size)
     )
     conn.commit()
     conn.close()
-    backup_to_github() # 👈 ወደ ጂትሀብ ይላክ
+    backup_to_github()
 
 def get_products_by_category(category):
     conn = get_connection()

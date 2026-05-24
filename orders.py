@@ -74,16 +74,16 @@ def register_order_handlers(bot):
             price = data['price']
             size = data['size']
             
-            # 💡 ዳታቤዝ ላይ price እና size በደፈናው ለማስገባት እንሞክራለን
             conn = database.get_connection()
             cursor = conn.cursor()
+            # 💡 እዚህ ጋ አዲሶቹን የ price እና size አምዶች በደህንነት እንሞላለን
             try:
                 cursor.execute(
                     "INSERT INTO orders (user_name, chat_id, product_name, phone, price, size) VALUES (?, ?, ?, ?, ?, ?)",
                     (customer_name, chat_id, product_name, phone, str(price), str(size))
                 )
             except Exception:
-                # ቴብሉ ካልታደሰ ወደ ድሮው አሠራር በ fallback ይመለሳል
+                # ቴብሉ ገና ካልታደሰ ወደ ኋላ እንዳይቀር መከላከያ
                 cursor.execute(
                     "INSERT INTO orders (user_name, chat_id, product_name, phone) VALUES (?, ?, ?, ?)",
                     (customer_name, chat_id, product_name, phone)
@@ -104,7 +104,7 @@ def register_order_handlers(bot):
         )
         bot.send_message(chat_id, success_msg, parse_mode="Markdown", reply_markup=keyboards.get_main_menu())
         
-        # 💡 የ 64-byte ሊሚትን ለመከላከል ዳታውን አሳጥረን `sp_{order_id}` ብቻ አደረግነው!
+        # ለአድሚን የሚላክ በተን (sp_ = Send Payment, rj_ = Reject)
         admin_markup = InlineKeyboardMarkup()
         admin_markup.row(
             InlineKeyboardButton("💳 Send Payment Info", callback_data=f"sp_{order_id}"),
@@ -137,38 +137,26 @@ def register_order_handlers(bot):
             action = action_data[0]
             order_id = action_data[1]
             
-            # መረጃዎችን በጥንቃቄ ከዳታቤዝ ማውጣት
+            # መረጃውን ከዳታቤዝ በ Row Factory በጥንቃቄ መውሰድ
             conn = database.get_connection()
-            # ለደህንነት ሲባል row_factory በዲክሽነሪ መልክ እንዲያወጣው ማገዝ
-            try:
-                conn.row_factory = lambda cursor, row: dict(zip([col[0] for col in cursor.description], row))
-            except Exception:
-                pass
+            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM orders WHERE id = ?", (order_id,))
-            order = cursor.fetchone()
+            cursor.execute("SELECT * FROM orders WHERE order_id = ?", (order_id,))
+            row = cursor.fetchone()
             conn.close()
             
-            if not order:
+            if not row:
                 bot.send_message(call.message.chat.id, "⚠️ ስህተት፦ ይህ ትዕዛዝ በዳታቤዝ ውስጥ አልተገኘም።")
                 return
-
-            # መረጃዎቹ ዲክሽነሪ ወይም ቲዩፕል መሆናቸውን አረጋግጦ ቫሪያብል መሙላት
-            if isinstance(order, dict):
-                user_chat_id = order['chat_id']
-                user_name = order['user_name']
-                product_name = order['product_name']
-                phone = order['phone']
-                price = order.get('price', '20')  # ካልተገኘ የሙከራ ዋጋ መከላከያ
-                size = order.get('size', '37')    # ካልተገኘ የሙከራ ሳይዝ መከላከያ
-            else:
-                # እንደ መደበኛ ቲዩፕል ከሆነ (id, user_name, chat_id, product_name, phone, ...)
-                user_name = order[1]
-                user_chat_id = order[2]
-                product_name = order[3]
-                phone = order[4]
-                price = order[5] if len(order) > 5 else "20"
-                size = order[6] if len(order) > 6 else "37"
+            
+            # ወደ ዲክሽነሪ ቀይረን በቁልፍ (Key) ስማቸው መጥራት (ከስህተት ፍጹም ይከላከላል)
+            order = dict(row)
+            user_chat_id = order['chat_id']
+            user_name = order['user_name']
+            product_name = order['product_name']
+            phone = order['phone']
+            price = order.get('price') if order.get('price') else "20"
+            size = order.get('size') if order.get('size') else "37"
 
             # -------------------------------------------------------------
             # STEP A: አድሚኑ "Send Payment Info" ሲጫን (sp_)
