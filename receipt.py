@@ -14,16 +14,19 @@ def generate_receipt_image(order_id, user_name, product_name, price, size, phone
     draw.rectangle([(25, 25), (width - 25, height - 25)], outline="#BDC3C7", width=1)
     
     # 3. የአማርኛ ፎንት በስርዓት መጫን
-    font_path = "Nyala.ttf" # ወይም ያወረድከው የፎንት ስም (ለምሳሌ AbyssinicaSIL-Regular.ttf)
+    # በፕሮጀክቱ ዋና ማውጫ ላይ መኖሩን ያረጋግጣል
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    font_path = os.path.join(current_dir, "Nyala.ttf") 
     
     if os.path.exists(font_path):
         title_font = ImageFont.truetype(font_path, 34)
         body_font = ImageFont.truetype(font_path, 22)
         bold_font = ImageFont.truetype(font_path, 24)
+        print("✅ የአማርኛ ፎንት በተሳካ ሁኔታ ተጭኗል!")
     else:
-        # ፋይሉ ካልተገኘ ቦቱ እንዳይበላሽ ዲፎልት ፎንት መጠቀም
-        print("⚠️ የአማርኛ ፎንት ፋይል አልተገኘም! ዲፎልት ፎንት ጥቅም ላይ ውሏል።")
-        title_font = body_font = bold_font = ImageFont.load_default()
+        # ⚠️ ካልተገኘ ግን ወደ እንግሊዘኛው ዲፎልት ፎንት ከመሄድ፣ መጠኑ ትልቅ የሆነ የእንግሊዘኛ ፎንት እንሰጠዋለን
+        print(f"⚠️ ፎንቱ እዚህ ቦታ ላይ አልተገኘም፦ {font_path}")
+        title_font = body_font = bold_font = ImageFont.load_default(size=20)
 
     # 4. የራስጌ ጽሑፍ (Header)
     draw.text((width/2, 60), "ETHIO SHOE STORE", fill="#2C3E50", font=title_font, anchor="mm")
