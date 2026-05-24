@@ -7,6 +7,7 @@ import keyboards
 from config import ADMIN_IDS
 from receipt import generate_receipt_image
 import os
+import sqlite3
 
 class CustomerOrderStates(StatesGroup):
     waiting_for_phone = State()
@@ -76,18 +77,18 @@ def register_order_handlers(bot):
             
             conn = database.get_connection()
             cursor = conn.cursor()
-            # 💡 እዚህ ጋ አዲሶቹን የ price እና size አምዶች በደህንነት እንሞላለን
+            
+            # 💡 የዳታቤዝ ስህተት እንዳይፈጠር በመጀመሪያ ቴብሉ ላይ ኮለሞች መኖራቸውን በራሳችን እናረጋግጣለን
             try:
-                cursor.execute(
-                    "INSERT INTO orders (user_name, chat_id, product_name, phone, price, size) VALUES (?, ?, ?, ?, ?, ?)",
-                    (customer_name, chat_id, product_name, phone, str(price), str(size))
-                )
+                cursor.execute("ALTER TABLE orders ADD COLUMN price TEXT")
+                cursor.execute("ALTER TABLE orders ADD COLUMN size TEXT")
             except Exception:
-                # ቴብሉ ገና ካልታደሰ ወደ ኋላ እንዳይቀር መከላከያ
-                cursor.execute(
-                    "INSERT INTO orders (user_name, chat_id, product_name, phone) VALUES (?, ?, ?, ?)",
-                    (customer_name, chat_id, product_name, phone)
-                )
+                pass # ኮለሞቹ አስቀድመው ካሉ ስህተቱን ችላ ይለዋል
+                
+            cursor.execute(
+                "INSERT INTO orders (user_name, chat_id, product_name, phone, price, size) VALUES (?, ?, ?, ?, ?, ?)",
+                (customer_name, chat_id, product_name, phone, str(price), str(size))
+            )
             conn.commit()
             order_id = cursor.lastrowid
             conn.close()
@@ -104,10 +105,10 @@ def register_order_handlers(bot):
         )
         bot.send_message(chat_id, success_msg, parse_mode="Markdown", reply_markup=keyboards.get_main_menu())
         
-        # ለአድሚን የሚላክ በተን (sp_ = Send Payment, rj_ = Reject)
+        # የቴሌግራም 64-byte ሊሚትን እና የዳታ መጥፋትን ለመከላከል ዋጋ እና ሳይዝን በ callback ዳታ ውስጥ አብረን እናሳልፋለን!
         admin_markup = InlineKeyboardMarkup()
         admin_markup.row(
-            InlineKeyboardButton("💳 Send Payment Info", callback_data=f"sp_{order_id}"),
+            InlineKeyboardButton("💳 Send Payment Info", callback_data=f"sp_{order_id}_{price}_{size}"),
             InlineKeyboardButton("❌ Reject Order", callback_data=f"rj_{order_id}")
         )
         
@@ -137,9 +138,8 @@ def register_order_handlers(bot):
             action = action_data[0]
             order_id = action_data[1]
             
-            # መረጃውን ከዳታቤዝ በ Row Factory በጥንቃቄ መውሰድ
+            # መረጃውን ከዳታቤዝ መውሰድ
             conn = database.get_connection()
-            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM orders WHERE order_id = ?", (order_id,))
             row = cursor.fetchone()
@@ -149,14 +149,24 @@ def register_order_handlers(bot):
                 bot.send_message(call.message.chat.id, "⚠️ ስህተት፦ ይህ ትዕዛዝ በዳታቤዝ ውስጥ አልተገኘም።")
                 return
             
-            # ወደ ዲክሽነሪ ቀይረን በቁልፍ (Key) ስማቸው መጥራት (ከስህተት ፍጹም ይከላከላል)
-            order = dict(row)
-            user_chat_id = order['chat_id']
-            user_name = order['user_name']
-            product_name = order['product_name']
-            phone = order['phone']
-            price = order.get('price') if order.get('price') else "20"
-            size = order.get('size') if order.get('size') else "37"
+            # የዳታቤዝ አቀራረብ ምንም ይሁን ምን በደህንነት መረጃዎችን መውሰድ
+            order = dict(row) if hasattr(row, 'keys') or isinstance(row, dict) else None
+            
+            if order:
+                user_chat_id = order.get('chat_id')
+                user_name = order.get('user_name')
+                product_name = order.get('product_name')
+                phone = order.get('phone')
+            else:
+                # ሮው ፋክተሪ ካልሠራ በኢንዴክስ መውሰጃ (Fallback)
+                user_name = row[1]
+                user_chat_id = row[2]
+                product_name = row[3]
+                phone = row[4]
+
+            # 💡 ዋጋ እና ሳይዝ ከዳታቤዝ ቢጠፉ እንኳን ከራሱ ከቪው በተኑ (Callback Data) ላይ በታማኝነት እንወስዳለን!
+            price = action_data[2] if len(action_data) > 2 else "3000"
+            size = action_data[3] if len(action_data) > 3 else "41"
 
             # -------------------------------------------------------------
             # STEP A: አድሚኑ "Send Payment Info" ሲጫን (sp_)
@@ -165,7 +175,7 @@ def register_order_handlers(bot):
                 bot.edit_message_text(f"⏳ ለትዕዛዝ #{order_id} የክፍያ መረጃ ለደንበኛው ተልኳል። ደንበኛው ክፍያ እስኪፈጽም ይጠበቃል።", call.message.chat.id, call.message.message_id)
                 
                 pay_markup = InlineKeyboardMarkup()
-                pay_markup.add(InlineKeyboardButton("✅ ክፍያ ፈጽሜያለሁ / I have Paid", callback_data=f"paid_{order_id}"))
+                pay_markup.add(InlineKeyboardButton("✅ ክፍያ ፈጽሜያለሁ / I have Paid", callback_data=f"paid_{order_id}_{price}_{size}"))
                 
                 payment_details = (
                     f"💳 **የትዕዛዝ ቁጥር #{order_id} የክፍያ መረጃ**\n\n"
@@ -187,7 +197,7 @@ def register_order_handlers(bot):
                 
                 confirm_markup = InlineKeyboardMarkup()
                 confirm_markup.row(
-                    InlineKeyboardButton("✅ Approve Payment & Send Receipt", callback_data=f"fa_{order_id}"),
+                    InlineKeyboardButton("✅ Approve Payment & Send Receipt", callback_data=f"fa_{order_id}_{price}_{size}"),
                     InlineKeyboardButton("❌ Reject", callback_data=f"rj_{order_id}")
                 )
                 
